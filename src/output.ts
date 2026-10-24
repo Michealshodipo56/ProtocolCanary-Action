@@ -39,8 +39,15 @@ export interface CanaryCounts {
   readonly skipped: number;
 }
 
+export interface CanaryLock {
+  readonly path: string;
+  readonly status: "absent" | "verified";
+  readonly warnings: readonly string[];
+}
+
 export interface CanaryReport {
   readonly schemaVersion: number;
+  readonly lock?: CanaryLock;
   readonly toolVersion: string;
   readonly targetProtocol: number;
   readonly project: { readonly name: string; readonly type: string };
@@ -224,6 +231,22 @@ export function parseReport(stdout: string): CanaryReport {
     }
   }
   const skipped = report.skipped as CanarySkip[] | undefined;
+  if (report.lock !== undefined) {
+    const lock = report.lock as unknown;
+    if (typeof lock !== "object" || lock === null || Array.isArray(lock)) {
+      throw new InvalidReportError('Canary report has invalid "lock": expected an object.');
+    }
+    const value = lock as Record<string, unknown>;
+    if (typeof value.path !== "string") {
+      throw new InvalidReportError('Canary report has invalid "lock.path": expected a string.');
+    }
+    if (value.status !== "absent" && value.status !== "verified") {
+      throw new InvalidReportError('Canary report has invalid "lock.status": expected absent or verified.');
+    }
+    if (!Array.isArray(value.warnings) || !value.warnings.every((warning: unknown) => typeof warning === "string")) {
+      throw new InvalidReportError('Canary report has invalid "lock.warnings": expected an array of strings.');
+    }
+  }
   const counts = isCountsShape(report.counts) ? report.counts : deriveCounts(results, skipped);
 
   return { ...report, results, skipped, counts } as CanaryReport;
