@@ -76,6 +76,13 @@ export function renderSummaryMarkdown(report: CanaryReport): string {
     lines.push("| Surface | Result |", "|---|---|", ...rows, "");
   }
 
+  if (report.lock !== undefined) {
+    const safe = (value: string): string => value.slice(0, 8192).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\r?\n/g, " ").replace(/([\\`*_{}\[\]()#+.!|~-])/g, "\\$1");
+    lines.push("### Fixture lock", "", `Status: ${safe(report.lock.status)}`, "");
+    if (report.lock.warnings.length > 0) {
+      lines.push(...report.lock.warnings.map((warning) => `- ⚠️ ${safe(warning)}`), "");
+    }
+  }
   lines.push("### Result", "", OVERALL_LABEL[report.status], "");
   lines.push(`${String(report.counts.passed)}/${String(report.counts.total)} applicable checks passed.`, "");
 
