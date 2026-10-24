@@ -28,6 +28,9 @@ export function emitAnnotations(report: CanaryReport): void {
       core.warning(message, { title: TITLE });
     }
   }
+  for (const warning of report.lock?.warnings ?? []) {
+    core.warning(`Fixture lock: ${warning.slice(0, 8192)}`, { title: TITLE });
+  }
 }
 
 /**
