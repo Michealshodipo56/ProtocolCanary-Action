@@ -305,3 +305,29 @@ describe("renderExecutionFailureMarkdown", () => {
     }
   });
 });
+
+
+describe("fixture lock summary (#453)", () => {
+  it("keeps reports without lock unchanged", () => {
+    expect(renderSummaryMarkdown(report({}))).not.toContain("Fixture lock");
+  });
+  it.each([
+    ["verified", "verified"],
+    ["absent", "absent"],
+  ] as const)("renders %s lock status", (status, label) => {
+    const markdown = renderSummaryMarkdown(report({
+      lock: { path: "fixtures/canary.lock", status, warnings: [] },
+    }));
+    expect(markdown).toContain("### Fixture lock");
+    expect(markdown).toContain(`Status: ${label}`);
+  });
+  it("escapes Markdown and HTML in warnings", () => {
+    const markdown = renderSummaryMarkdown(report({
+      lock: { path: "fixtures/canary.lock", status: "verified", warnings: ["**bad** <script> ::warning::"] },
+    }));
+    expect(markdown).not.toContain("<script>");
+    expect(markdown).not.toContain("**bad**");
+    expect(markdown).toContain("&lt;script&gt;");
+    expect(markdown).toContain("::warning::");
+  });
+});
