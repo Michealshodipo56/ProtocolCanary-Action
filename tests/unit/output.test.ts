@@ -276,3 +276,28 @@ describe("describeExitCode", () => {
     expect(describeExitCode(-1).category).toBe("unknown");
   });
 });
+
+
+describe("lock report contract (#453)", () => {
+  const base = {
+    schemaVersion: 1, toolVersion: "test", targetProtocol: 28,
+    project: { name: "example", type: "rust" }, status: "pass",
+    results: [], git: { commit: null, branch: null, isDirty: null },
+  };
+  it("preserves a missing lock without inventing one", () => {
+    expect(parseReport(JSON.stringify(base)).lock).toBeUndefined();
+  });
+  it.each(["absent", "verified"] as const)("accepts %s lock status", (status) => {
+    const lock = { path: "fixtures/canary.lock", status, warnings: ["engine version differs"] };
+    expect(parseReport(JSON.stringify({ ...base, lock })).lock).toEqual(lock);
+  });
+  it.each([
+    [{ lock: "bad" }, '"lock"'],
+    [{ lock: { path: 1, status: "verified", warnings: [] } }, '"lock.path"'],
+    [{ lock: { path: "file", status: "unknown", warnings: [] } }, '"lock.status"'],
+    [{ lock: { path: "file", status: "verified", warnings: "bad" } }, '"lock.warnings"'],
+    [{ lock: { path: "file", status: "verified", warnings: [12] } }, '"lock.warnings"'],
+  ])("rejects malformed lock with field-specific error", (patch, field) => {
+    expect(() => parseReport(JSON.stringify({ ...base, ...patch }))).toThrow(field);
+  });
+});
