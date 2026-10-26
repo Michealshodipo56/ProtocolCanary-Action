@@ -80,3 +80,19 @@ describe("emitExecutionFailureAnnotation", () => {
     expect(errorMock.mock.calls[0]?.[0]).toContain("cargo install failed");
   });
 });
+
+
+describe("fixture lock annotations (#453)", () => {
+  it("emits a warning annotation for each lock warning", () => {
+    emitAnnotations(report({
+      lock: { path: "fixtures/canary.lock", status: "verified", warnings: ["version mismatch", "::warning::unsafe"] },
+    }));
+    expect(warningMock).toHaveBeenCalledTimes(2);
+    expect(warningMock.mock.calls[0]?.[0]).toContain("Fixture lock: version mismatch");
+    expect(warningMock.mock.calls[1]?.[0]).toContain("::warning::unsafe");
+  });
+  it("does not annotate a lock with no warnings", () => {
+    emitAnnotations(report({ lock: { path: "fixtures/canary.lock", status: "absent", warnings: [] } }));
+    expect(warningMock).not.toHaveBeenCalled();
+  });
+});
